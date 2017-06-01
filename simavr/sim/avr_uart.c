@@ -194,7 +194,7 @@ avr_uart_read(
 		AVR_LOG(avr, LOG_TRACE, "UART%c: BUG: rxc raised with empty rx buffer\n", p->name);
 	}
 
-//	TRACE(printf("UART read %02x %s\n", v, uart_fifo_isempty(&p->input) ? "EMPTY!" : "");)
+	TRACE(printf("UART read %02x %s\n", v, uart_fifo_isempty(&p->input) ? "EMPTY!" : "");)
 	avr->data[addr] = v;
 	// made to trigger potential watchpoints
 	v = avr_core_watch_read(avr, addr);

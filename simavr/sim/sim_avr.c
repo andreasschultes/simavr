@@ -414,6 +414,8 @@ std_logger(
 		va_list ap)
 {
 	if (!avr || avr->log >= level) {
+		if(avr&&avr->mmcu)
+			fprintf((level > LOG_ERROR) ?  stdout : stderr , "%s: ",avr->mmcu);
 		vfprintf((level > LOG_ERROR) ?  stdout : stderr , format, ap);
 	}
 }

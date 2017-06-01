@@ -439,6 +439,7 @@ _avr_vcd_timer(
 {
 	avr_vcd_t * vcd = param;
 	avr_vcd_flush_log(vcd);
+	fflush(vcd->output);
 	return when + vcd->period;
 }
 
@@ -544,6 +545,7 @@ avr_vcd_start(
 				_avr_vcd_get_float_signal_text(s, out));
 	}
 	fprintf(vcd->output, "$end\n");
+	fflush(vcd->output);
 	avr_cycle_timer_register(vcd->avr, vcd->period, _avr_vcd_timer, vcd);
 	return 0;
 }
