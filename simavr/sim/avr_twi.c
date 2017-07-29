@@ -117,6 +117,9 @@ _avr_twi_delay_state(
 		int twi_cycles,
 		uint8_t state)
 {
+//	avr_regbit_clear(p->io.avr, p->twi.raised);
+//	avr_clear_interrupt(p->io.avr, &p->twi);//, avr_regbit_get(p->io.avr, p->twi.raised));
+	avr_regbit_clear(p->io.avr, p->twi.raised);
 	p->next_twstate = state;
 	// TODO: calculate clock rate, convert to cycles, and use that
 	avr_cycle_timer_register_usec(
@@ -195,9 +198,9 @@ avr_twi_write(
 #endif
 		// generate a start condition
 		if (p->state & TWI_COND_START)
-			_avr_twi_delay_state(p, 0, TWI_REP_START);
+			_avr_twi_delay_state(p, 9, TWI_REP_START);
 		else
-			_avr_twi_delay_state(p, 0, TWI_START);
+			_avr_twi_delay_state(p, 9, TWI_START);
 		p->peer_addr = 0;
 		p->state = TWI_COND_START;
 	}
@@ -210,7 +213,7 @@ avr_twi_write(
 		return;
 
 	int do_read = p->peer_addr & 1;
-	int do_ack = avr_regbit_get(avr, p->twea) != 0;
+	int do_ack = avr_regbit_get(avr, p->twea) ;
 
 	if (p->state & TWI_COND_SLAVE) {
 		// writing or reading a byte
@@ -258,7 +261,7 @@ avr_twi_write(
 			// a normal data byte
 			uint8_t msgv = do_read ? TWI_COND_READ : TWI_COND_WRITE;
 
-			if (do_ack)
+			if (!do_ack)
 				msgv |= TWI_COND_ACK;
 
 			p->state &= ~TWI_COND_ACK;	// clear ACK bit
@@ -275,11 +278,11 @@ avr_twi_write(
 
 				if (do_read) { // read ?
 					_avr_twi_delay_state(p, 9,
-							msgv & TWI_COND_ACK ?
+							!do_ack ?
 									TWI_MRX_DATA_ACK : TWI_MRX_DATA_NACK);
 				} else {
 					_avr_twi_delay_state(p, 9,
-							p->state & TWI_COND_ACK ?
+							!do_ack ?
 									TWI_MTX_DATA_ACK : TWI_MTX_DATA_NACK);
 				}
 			}
@@ -308,15 +311,11 @@ avr_twi_write(
 						p->state & TWI_COND_ACK ?
 								TWI_MRX_ADR_ACK : TWI_MRX_ADR_NACK);
 			} else {
-				if(p->state & TWI_COND_WRITE){
-					_avr_twi_delay_state(p, 0,
-							p->state & TWI_COND_ACK ?
-									TWI_MTX_DATA_ACK : TWI_MTX_DATA_NACK);
-				}else{
+				
 					_avr_twi_delay_state(p, 9,
 							p->state & TWI_COND_ACK ?
 									TWI_MTX_ADR_ACK : TWI_MTX_ADR_NACK);
-				}
+				
 			}
 		}
 		p->state &= ~TWI_COND_WRITE;
