@@ -39,7 +39,7 @@ SIMAVR		:= ${shell for p in . .. ../.. ../../..;do test -d $$p/simavr/sim && ech
 # get the first character of what the compiler says it is, unless it's 'x86_64' doh
 ARCH 		:= ${shell $(CC) -dumpmachine | sed -e 's/^x/i/' -e 's/\(.\).*/\1/'}
 
-CFLAGS		+= -O2 -Wall -Wextra -Werror -Wno-unused-parameter \
+CFLAGS		+= -O2 -Wall -Wextra -Wno-unused-parameter \
 			-Wno-unused-result -Wno-missing-field-initializers \
 			-Wno-sign-compare
 CFLAGS		+= -g
@@ -48,7 +48,7 @@ CORE_CFLAGS	= -DAVR_CORE=1
 ifeq (${shell uname}, Darwin)
  # gcc 4.2 from MacOS is really not up to scratch anymore
  CC			= clang
- AVR_ROOT 	:= "/Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/"
+ AVR_ROOT 	:= "/Applications/Arduino.app/Contents/Java/hardware/tools/avr/"
  AVR 		:= ${AVR_ROOT}/bin/avr-
  # Thats for MacPorts libelf
  ifeq (${shell test -d /opt/local && echo Exists}, Exists)
@@ -184,12 +184,39 @@ ${OBJ}/%.elf:
 ifneq ($(E),)
 	@echo LD $@
 endif
-	${E}$(CC) -MMD ${CFLAGS}  ${LFLAGS} -o $@ $^ $(LDFLAGS)
+	${E}$(CC) -MMD ${CFLAGS}  ${LFLAGS} -o $@ ${filter %.o,$^} $(LDFLAGS)
+
+
+.PRECIOUS: ${OBJ}/%.a ${OBJ}/%.so.1
+#
+# Static library
+#
+${OBJ}/%.a:
+ifneq ($(E),)
+	@echo AR $@
+endif
+	${E}$(AR) cru $@ ${filter %.o,$^} && $(RANLIB) $@
+
+#
+# Shared library (Linux)
+#
+${OBJ}/%.so.1: ${OBJ}/%.a
+ifneq ($(E),)
+	@echo SHARED $@
+endif
+	${E}$(CC) -o $@ -shared \
+		-Wl,--whole-archive,-soname,${basename ${notdir $@}}.1 \
+		${filter %.o %.a,$^} \
+		 -Wl,--no-whole-archive \
+		${filter-out -l%, $(LDFLAGS)} ${EXTRA_LDFLAGS}
+
+${OBJ}/%.so: ${OBJ}/%.so.1
+	ln -sf ${notdir $<} $@
 
 obj: ${OBJ}
 
 ${OBJ}:
-	@mkdir -p ${OBJ}
+	${E}mkdir -p ${OBJ}
 
 clean-${OBJ}:
 	rm -rf ${OBJ}
